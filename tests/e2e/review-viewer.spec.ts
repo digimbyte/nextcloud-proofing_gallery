@@ -22,7 +22,7 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
 				expect(reply.status()).toBe(201)
 			}
 			await page.goto(`${baseURL}/s/${token}`)
-			await page.getByRole('button', { name: 'Open proof.png', exact: true }).click()
+			await page.getByRole('button', { name: /^Open proof\.png(?:\.|$)/ }).click()
 			const image = page.locator('.proofing-zoom-image').filter({ visible: true }).first()
 			await expect(image).toBeVisible()
 			const before = (await image.boundingBox())!
@@ -83,7 +83,7 @@ test('touch panning reaches both image edges and never creates a pin after a dra
 		const page = await context.newPage()
 		const { token } = JSON.parse(await readFile('test-results-e2e-state.json', 'utf8')) as { token: string }
 		await page.goto(`${baseURL}/s/${token}`)
-		await page.getByRole('button', { name: 'Open proof.png', exact: true }).click()
+		await page.getByRole('button', { name: /^Open proof\.png(?:\.|$)/ }).click()
 		const image = page.locator('.proofing-zoom-image').filter({ visible: true }).first()
 		await expect(image).toBeVisible()
 		const before = (await image.boundingBox())!

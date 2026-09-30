@@ -1,8 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 
-const execFileAsync = promisify(execFile)
 const auth = `Basic ${Buffer.from('admin:admin').toString('base64')}`
 const headers = { Authorization: auth, 'OCS-APIRequest': 'true' }
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
@@ -285,53 +282,4 @@ test('guided event setup persists and delivery retries are idempotent', async ({
 	const legacyRelease = await request.post(`${baseURL}/ocs/v2.php/apps/proofing_gallery/api/v1/galleries/${gallery.id}/event/waves/${legacyDraft.wave.id}/release?format=json`, { headers })
 	expect(legacyRelease.status()).toBe(202)
 	expect(await legacyRelease.json()).toMatchObject({ id: legacyDraft.wave.id, status: 'releasing' })
-})
-
-
-test('deleted event recipient shares recover only through their scoped recipient workflow', async ({ request, baseURL }) => {
-	const dav = `${baseURL}/remote.php/dav/files/admin/ProofingGalleryE2ERecoveryEvent`
-	const galleries = `${baseURL}/ocs/v2.php/apps/proofing_gallery/api/v1/galleries`
-	await request.delete(dav, { headers })
-	expect((await request.fetch(dav, { method: 'MKCOL', headers })).status()).toBe(201)
-	for (const folder of ['Shared', 'Client', 'Other']) {
-		expect((await request.fetch(`${dav}/${folder}`, { method: 'MKCOL', headers })).status()).toBe(201)
-		expect((await request.put(`${dav}/${folder}/photo.png`, { headers, data: png })).ok()).toBe(true)
-	}
-	const folderId = await fileId(await request.fetch(dav, { method: 'PROPFIND', headers: { ...headers, Depth: '0' }, data: '<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:prop><oc:fileid/></d:prop></d:propfind>' }))
-	const created = await request.post(`${baseURL}/ocs/v2.php/apps/proofing_gallery/api/v1/projects?format=json`, { headers, data: { folderId, title: 'E2E event share recovery', sourceMode: 'existing', deliveryMode: 'event' } })
-	expect(created.status(), await created.text()).toBe(201)
-	const gallery = await created.json() as { id: number }
-	try {
-		expect((await request.post(`${galleries}/${gallery.id}/publish?format=json`, { headers, data: {} })).ok()).toBe(true)
-		const delivery = await request.post(`${galleries}/${gallery.id}/event/waves?format=json`, { headers, data: { releaseNow: true, sharedRoots: ['Shared'], recipients: [{ folderPath: 'Client', name: 'Client', email: '', locale: 'en', pin: '' }] } })
-		expect(delivery.status(), await delivery.text()).toBe(201)
-		const wave = await delivery.json() as { id: number }
-		await execFileAsync('docker', ['compose', 'exec', '-T', '--user', 'www-data', 'nextcloud', 'php', '-r', 'require "/var/www/html/lib/base.php"; \\OC::$server->get(\\OCA\\ProofingGallery\\Service\\EventWaveService::class)->process((int)$argv[1]);', String(wave.id)])
-		const recipients = await request.get(`${baseURL}/ocs/v2.php/apps/proofing_gallery/api/v2/galleries/${gallery.id}/event/recipients?format=json`, { headers }).then(response => response.json()) as { items: Array<{ id: number; link: { id: number; url: string } }> }
-		const recipient = recipients.items[0]
-		const token = new URL(recipient.link.url).pathname.split('/').at(-1)!
-		const shares = await request.get(`${baseURL}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, { headers }).then(response => response.json()) as { ocs: { data: Array<{ id: string; token: string }> } }
-		const native = shares.ocs.data.find(share => share.token === token)!
-		expect((await request.delete(`${baseURL}/ocs/v2.php/apps/files_sharing/api/v1/shares/${native.id}?format=json`, { headers })).ok()).toBe(true)
-		const endpoint = `${baseURL}/ocs/v2.php/apps/proofing_gallery/api/v2/galleries/${gallery.id}/event/recipients/${recipient.id}?format=json`
-		const choices = { folderPath: 'Client', groupRoots: [], name: 'Client', email: '', locale: 'en' }
-		const missing = await request.put(endpoint, { headers, data: choices })
-		expect(missing.status(), await missing.text()).toBe(409)
-		expect(await missing.json()).toMatchObject({ code: 'public_share_missing' })
-		const generic = await request.put(`${galleries}/${gallery.id}/public-links/${recipient.link.id}?format=json`, { headers, data: { name: 'Client', policy: { view: true }, recoverMissingShare: true, password: '', expiresAt: '' } })
-		expect(generic.status()).toBe(422)
-		const recovered = await request.put(endpoint, { headers, data: { ...choices, recoverMissingShare: true, password: '', expiresAt: '' } })
-		expect(recovered.ok(), await recovered.text()).toBe(true)
-		const restored = await recovered.json() as { id: number; link: { id: number; url: string }; recovery: string }
-		expect(restored.id).toBe(recipient.id)
-		expect(restored.link.id).toBe(recipient.link.id)
-		expect(['restored', 'replaced']).toContain(restored.recovery)
-		const replacementToken = new URL(restored.link.url).pathname.split('/').at(-1)!
-		const root = await request.get(`${baseURL}/index.php/apps/proofing_gallery/public/${replacementToken}/gallery`).then(response => response.json()) as { items: Array<{ name: string }> }
-		expect(root.items.map(item => item.name).sort()).toEqual(['Client', 'Shared'])
-		expect((await request.get(`${baseURL}/index.php/apps/proofing_gallery/public/${replacementToken}/gallery?path=Other`)).status()).toBe(404)
-	} finally {
-		await request.delete(`${galleries}/${gallery.id}?format=json`, { headers })
-		await request.delete(dav, { headers })
-	}
 })

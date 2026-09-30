@@ -3,10 +3,9 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
 import { missingPublicShare, publicShareError, shareRecoveryMessage } from '../domain/publicShareRecovery.ts'
 import type { ShareRecoveryChoices } from '../domain/publicShareRecovery.ts'
-import PublicShareRecoveryForm from './PublicShareRecoveryForm.vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 
 import { normalizeEventRecipientMatch as normalizeMatch, eventRecipientStatusLabel as statusLabel } from '../domain/eventDeliveryPresentation.ts'
 import { bulkEventRecipients, editEventRecipient, fetchEventRecipients, fetchLatestEventRecipientLinks, operateEventRecipient } from '../services/eventApi.ts'
@@ -14,6 +13,7 @@ import type { EventFolderPreview, EventRecipient, EventSetupDelivery, EventSetup
 import type { Gallery } from '../types.ts'
 import { eventDeliveryIcons } from './eventDeliveryIcons.ts'
 
+const PublicShareRecoveryForm = defineAsyncComponent(() => import('./PublicShareRecoveryForm.vue'))
 const recoveryNeeded = ref(false)
 const recoveryNotice = ref('')
 const props = defineProps<{

@@ -646,6 +646,23 @@
 .media-tile:hover .media-tile__name,
 .media-tile:focus-within .media-tile__name { opacity: 1; }
 
+.media-tile--folder .media-tile__name,
+.media-grid--list .media-tile--folder .media-tile__details strong {
+	background: transparent;
+	color: var(--gallery-text);
+	opacity: 1;
+}
+
+.media-tile--folder:hover .media-tile__name,
+.media-tile--folder:focus-within .media-tile__name,
+.media-tile--folder.media-tile--selected .media-tile__name,
+.media-grid--list .media-tile--folder:hover .media-tile__details strong,
+.media-grid--list .media-tile--folder:focus-within .media-tile__details strong,
+.media-grid--list .media-tile--folder.media-tile--selected .media-tile__details strong {
+	background: linear-gradient(to top, rgb(0 0 0 / 68%), transparent);
+	color: #fff;
+}
+
 .media-tile__likes {
 	position: absolute;
 	inset: 8px auto auto 8px;

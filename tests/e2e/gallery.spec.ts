@@ -1331,3 +1331,89 @@ test('editorial story and contextual light table work on desktop and mobile', as
 
 	await request.delete(`${galleries}/${created.id}?format=json`, { headers })
 })
+
+
+test('folder navigation captions stay visible across layouts and filename settings', async ({ browser, request, baseURL }, testInfo) => {
+	test.setTimeout(180_000)
+	const headers = { Authorization: `Basic ${Buffer.from('admin:admin').toString('base64')}`, 'OCS-APIRequest': 'true' }
+	const dav = `${baseURL}/remote.php/dav/files/admin/ProofingGalleryE2EFolderLabels`
+	const galleries = `${baseURL}/ocs/v2.php/apps/proofing_gallery/api/v1/galleries`
+	const names = Array.from({ length: 32 }, (_, index) => `Folder ${String(index + 1).padStart(2, '0')}${index === 0 ? ' with a long descriptive client name for navigation' : ''}`)
+	await request.delete(dav, { headers })
+	expect((await request.fetch(dav, { method: 'MKCOL', headers })).status()).toBe(201)
+	for (const name of names) expect((await request.fetch(`${dav}/${encodeURIComponent(name)}`, { method: 'MKCOL', headers })).status()).toBe(201)
+	const photo = await request.get(`${baseURL}/remote.php/dav/files/admin/ProofingGalleryE2E/proof.png`, { headers })
+	expect(photo.ok()).toBe(true)
+	expect((await request.put(`${dav}/photo.png`, { headers, data: await photo.body() })).ok()).toBe(true)
+	const propfind = await request.fetch(dav, { method: 'PROPFIND', headers: { ...headers, Depth: '0' }, data: '<d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:prop><oc:fileid/></d:prop></d:propfind>' })
+	const folderId = Number((await propfind.text()).match(/<(?:oc:)?fileid>(\d+)<\/(?:oc:)?fileid>/)?.[1])
+	const created = await request.post(`${galleries}?format=json`, { headers, data: { folderId, title: 'E2E Folder navigation', settings: { publicLocale: 'en', presentation: { openerStyle: 'compact' } } } })
+	expect(created.status(), await created.text()).toBe(201)
+	const gallery = await created.json() as { id: number }
+	try {
+		const published = await request.post(`${galleries}/${gallery.id}/publish?format=json`, { headers, data: {} })
+		expect(published.ok(), await published.text()).toBe(true)
+		const token = (await published.json() as { gallery: { shareToken: string } }).gallery.shareToken
+		for (const layout of ['grid', 'masonry', 'list']) for (const showFilenames of [false, true]) {
+			const update = await request.put(`${galleries}/${gallery.id}?format=json`, { headers, data: { settings: { presentation: { layout, showFilenames } } } })
+			expect(update.ok(), await update.text()).toBe(true)
+			for (const width of [1440, 390]) {
+				const context = await browser.newContext({ viewport: { width, height: 900 } })
+				const page = await context.newPage()
+				try {
+					await page.goto(`${baseURL}/s/${token}`)
+					const folder = page.locator('.media-tile--folder').first()
+					const caption = folder.locator(layout === 'list' ? '.media-tile__details strong' : '.media-tile__name')
+					await expect(caption).toBeVisible()
+					await expect(caption).toHaveCSS('opacity', '1')
+					await expect(caption).toHaveCSS('background-image', 'none')
+					await expect(caption).toHaveCSS('color', await folder.evaluate(element => getComputedStyle(element).color))
+					const dimensions = await folder.boundingBox()
+					await page.screenshot({ path: testInfo.outputPath(`folders-${layout}-${showFilenames}-${width}.png`) })
+					await folder.hover()
+					await expect(caption).toHaveCSS('background-image', /linear-gradient/)
+					await expect(caption).toHaveCSS('opacity', '1')
+					const hovered = await folder.boundingBox()
+					expect(hovered?.width).toBe(dimensions?.width)
+					expect(hovered?.height).toBe(dimensions?.height)
+					await page.mouse.move(1, 1)
+					await folder.locator('.media-tile__open').focus()
+					await expect(caption).toHaveCSS('background-image', /linear-gradient/)
+					await expect(caption).toHaveCSS('opacity', '1')
+					await folder.locator('.media-tile__open').evaluate(element => (element as HTMLButtonElement).blur())
+					await expect(caption).toHaveCSS('background-image', 'none')
+					await folder.evaluate(element => element.classList.add('media-tile--selected'))
+					await expect(caption).toHaveCSS('background-image', /linear-gradient/)
+					await expect(caption).toHaveCSS('opacity', '1')
+					await folder.evaluate(element => element.classList.remove('media-tile--selected'))
+					const seen = new Set<string>()
+					for (let step = 0; step < 20; step++) {
+						for (const name of await page.locator('.media-tile--folder .media-tile__name, .media-tile--folder .media-tile__details strong').allTextContents()) seen.add(name.trim())
+						const done = await page.locator('ion-content').evaluate(async element => {
+							const scroll = await (element as HTMLElement & { getScrollElement(): Promise<HTMLElement> }).getScrollElement()
+							if (scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 2) return true
+							scroll.scrollTop = Math.min(scroll.scrollHeight, scroll.scrollTop + scroll.clientHeight * 0.8)
+							return false
+						})
+						await settleVisualState(page)
+						if (done) break
+					}
+					expect([...seen].sort()).toEqual([...names].sort())
+					const image = page.locator('.media-tile').filter({ has: page.locator('.media-tile__image') }).first()
+					await expect(image).toBeVisible()
+					await expect(image).not.toHaveClass(/media-tile--folder/)
+					await expect(image.locator(layout === 'list' ? '.media-tile__details strong' : '.media-tile__name')).toHaveCount(showFilenames ? 1 : 0)
+					expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
+					await page.locator('ion-content').evaluate(async element => { (await (element as HTMLElement & { getScrollElement(): Promise<HTMLElement> }).getScrollElement()).scrollTop = 0 })
+					await settleVisualState(page)
+					await page.locator('.media-tile--folder .media-tile__open').first().focus()
+					await page.keyboard.press('Enter')
+					await expect(page.getByText('This gallery is empty', { exact: true })).toBeVisible()
+				} finally { await context.close() }
+			}
+		}
+	} finally {
+		await request.delete(`${galleries}/${gallery.id}?format=json`, { headers })
+		await request.delete(dav, { headers })
+	}
+})

@@ -917,7 +917,7 @@ function upOneLevel() {
 								<template #default="{ item, index }">
 									<article
 										class="media-tile"
-										:class="{ 'media-tile--selected': selectedIds.includes(item.id), 'media-tile--lead': item.id === mediaItems[0]?.id }">
+										:class="{ 'media-tile--folder': item.folder, 'media-tile--selected': selectedIds.includes(item.id), 'media-tile--lead': item.id === mediaItems[0]?.id }">
 										<span v-if="startsGroup(item, index)" class="media-tile__group">{{ groupLabel(item.group) }}</span>
 										<button
 											class="media-tile__open"
@@ -934,10 +934,10 @@ function upOneLevel() {
 											<span v-else-if="item.folder" class="media-tile__folder" aria-hidden="true" />
 											<span v-else class="media-tile__video" aria-hidden="true">▶</span>
 											<span v-if="layout === 'list'" class="media-tile__details" aria-hidden="true">
-												<strong v-if="settings.presentation.showFilenames">{{ item.name }}</strong>
+												<strong v-if="item.folder || settings.presentation.showFilenames">{{ item.name }}</strong>
 												<span><PublicMediaListDetails :item="item" :dimensions="mediaDimensions" /></span>
 											</span>
-											<span v-else-if="settings.presentation.showFilenames" class="media-tile__name" aria-hidden="true">
+											<span v-else-if="item.folder || settings.presentation.showFilenames" class="media-tile__name" aria-hidden="true">
 												{{ item.name }}
 											</span>
 											<span

@@ -40,6 +40,7 @@ final class PublicShareService {
 		private IDBConnection $db,
 		private LifecycleScheduleService $lifecycleSchedule,
 		private PublicLinkAnchorService $linkAnchors,
+		private PublicShareRecoveryService $recovery,
 	) {
 	}
 
@@ -48,7 +49,18 @@ final class PublicShareService {
 		?string $password,
 		?string $expiresAt,
 		string $downloadScope,
+		bool $recoverMissingShare = false,
+		?string &$recoveryResult = null,
 	): Gallery {
+		$recoveryResult = null;
+		return $this->recovery->locked((int)$gallery->getId(), function () use ($gallery, $password, $expiresAt, $downloadScope, $recoverMissingShare, &$recoveryResult): Gallery {
+			$current = $this->galleries->find((int)$gallery->getId());
+			if ($current->getRevision() !== $gallery->getRevision()) throw new \OCA\ProofingGallery\Exception\GalleryConflictException('The gallery changed before it could be published');
+			return $this->publishLocked($current, $password, $expiresAt, $downloadScope, $recoverMissingShare, $recoveryResult);
+		});
+	}
+
+	private function publishLocked(Gallery $gallery, ?string $password, ?string $expiresAt, string $downloadScope, bool $recoverMissingShare, ?string &$recoveryResult): Gallery {
 		$this->capabilities->assertCanPublish($gallery->getOwnerUid());
 		$this->readiness->assertPublishable($gallery);
 		if ($downloadScope !== 'none') $this->capabilities->assertFeature('downloads');
@@ -60,6 +72,8 @@ final class PublicShareService {
 		}
 
 		$isNewShare = $gallery->getShareToken() === null;
+		$previousToken = $gallery->getShareToken();
+		$existingLink = $isNewShare ? null : $this->publicLinks->ensurePrimary($gallery);
 		$eventAnchor = null;
 		if ($gallery->getDeliveryMode() === 'event') {
 			if (!$isNewShare) {
@@ -68,14 +82,27 @@ final class PublicShareService {
 					$eventAnchor = $this->linkAnchors->resolve($gallery->getOwnerUid(), $existingLink->getScopeAnchorId());
 				}
 			}
-			$eventAnchor ??= $this->linkAnchors->create($gallery->getOwnerUid());
+			if ($isNewShare) $eventAnchor ??= $this->linkAnchors->create($gallery->getOwnerUid());
 		}
-		$share = $isNewShare
-			? $this->createShare($gallery, $eventAnchor)
-			: $this->shareManager->getShareByToken($gallery->getShareToken());
+		$share = $this->createShare($gallery, $eventAnchor);
+		if ($eventAnchor === null && $existingLink !== null && $existingLink->getStartPath() !== '') {
+			$share->setNode($this->folders->resolveFolder($gallery->getOwnerUid(), $gallery->getFolderId())->get($existingLink->getStartPath()));
+		}
+		if (!$isNewShare) {
+			try {
+				$share = $this->recovery->resolve($gallery, $existingLink, (string)$previousToken, (int)$share->getNodeId());
+			} catch (\OCA\ProofingGallery\Exception\PublicShareMissingException $exception) {
+				if (!$recoverMissingShare) throw $exception;
+				if ($password === null || $expiresAt === null) throw new InvalidArgumentException('Choose a replacement password or no password, and an expiry or no expiry');
+				$isNewShare = true;
+				if ($gallery->getDeliveryMode() === 'event' && $eventAnchor === null && $existingLink?->getScopeMode() === 'empty') {
+					$eventAnchor = $this->linkAnchors->create($gallery->getOwnerUid());
+				}
+			}
+		}
 		if ($eventAnchor !== null) $share->setNode($eventAnchor);
 
-		$share->setLabel($gallery->getTitle());
+		$share->setLabel($this->recovery->label($gallery, $existingLink?->getName() ?? 'Primary link'));
 		$share->setPermissions(Constants::PERMISSION_READ);
 		if (!in_array($downloadScope, ['none', 'individual', 'selection', 'all'], true)) {
 			throw new InvalidArgumentException('Invalid download scope');
@@ -87,7 +114,7 @@ final class PublicShareService {
 		$share->setExpirationDate($this->expirationDate($expiresAt));
 
 		$share = $isNewShare
-			? $this->shareManager->createShare($share)
+			? ($previousToken === null ? $this->shareManager->createShare($share) : $this->recovery->create($share, $previousToken))
 			: $this->shareManager->updateShare($share);
 
 		$settings = GallerySettings::fromArray(json_decode($gallery->getSettings(), true, flags: JSON_THROW_ON_ERROR));
@@ -113,6 +140,7 @@ final class PublicShareService {
 			$this->failClosedPublishShare($gallery, $share, $isNewShare);
 			throw $exception;
 		}
+		if ($isNewShare && $previousToken !== null) $recoveryResult = $previousToken === $updated->getShareToken() ? 'restored' : 'replaced';
 		try {
 			$this->previewWarm->warm($updated);
 		} catch (\Throwable) {
@@ -147,9 +175,17 @@ final class PublicShareService {
 	}
 
 	public function revoke(Gallery $gallery): Gallery {
+		return $this->recovery->locked((int)$gallery->getId(), fn (): Gallery => $this->revokeLocked($this->galleries->find((int)$gallery->getId())));
+	}
+
+	private function revokeLocked(Gallery $gallery): Gallery {
 		foreach ($this->publicLinks->list($gallery) as $link) {
 			if ($link->getStatus() !== 'active') continue;
-			$this->shareManager->deleteShare($this->shareManager->getShareByToken($link->getToken()));
+			try {
+				$this->recovery->revoke($gallery, $link);
+			} catch (ShareNotFound) {
+				// External deletion has already removed access; finish local revocation.
+			}
 			if ($link->getScopeAnchorId() !== null) {
 				try {
 					$this->linkAnchors->delete($this->linkAnchors->resolve($gallery->getOwnerUid(), $link->getScopeAnchorId()));

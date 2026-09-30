@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
+import { missingPublicShare, publicShareError, shareRecoveryMessage } from '../domain/publicShareRecovery.ts'
+import type { ShareRecoveryChoices } from '../domain/publicShareRecovery.ts'
+import PublicShareRecoveryForm from './PublicShareRecoveryForm.vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import { computed, ref, watch } from 'vue'
@@ -11,6 +14,8 @@ import type { EventFolderPreview, EventRecipient, EventSetupDelivery, EventSetup
 import type { Gallery } from '../types.ts'
 import { eventDeliveryIcons } from './eventDeliveryIcons.ts'
 
+const recoveryNeeded = ref(false)
+const recoveryNotice = ref('')
 const props = defineProps<{
 	gallery: Gallery
 	folders: EventFolderPreview[]
@@ -134,16 +139,26 @@ async function operate(recipient: EventRecipient, action: 'resend' | 'revoke' | 
 			if ('pin' in result) oneTimePin.value = result.pin
 		}
 		emit('operations-updated'); showSuccess(t('proofing_gallery', 'Recipient link updated.'))
-	} catch { showError(t('proofing_gallery', 'The recipient action could not be completed.')) } finally { recipientAction.value = null }
+	} catch (error) {
+		if (missingPublicShare(error) && recipient.allowedActions?.includes('edit')) {
+			liveEditor.value = { ...recipient, groupRoots: [...recipient.groupRoots] }
+			recoveryNeeded.value = true
+		} else showError(publicShareError(error, t('proofing_gallery', 'The recipient action could not be completed.')))
+	} finally { recipientAction.value = null }
 }
 
-async function saveLiveRecipient() {
+async function saveLiveRecipient(choices?: ShareRecoveryChoices) {
+	if (recoveryNeeded.value && !choices) return
 	if (!liveEditor.value) return
 	recipientAction.value = liveEditor.value.id
 	try {
-		const updated = await editEventRecipient(props.gallery.id, liveEditor.value.id, { folderPath: liveEditor.value.folderPath, groupRoots: liveEditor.value.groupRoots, name: liveEditor.value.name, email: liveEditor.value.email ?? '', locale: liveEditor.value.locale })
-		replaceOperationalRecipient(updated); liveEditor.value = null; emit('operations-updated'); showSuccess(t('proofing_gallery', 'Live recipient link updated.'))
-	} catch { showError(t('proofing_gallery', 'The live recipient link could not be updated.')) } finally { recipientAction.value = null }
+		const updated = await editEventRecipient(props.gallery.id, liveEditor.value.id, { folderPath: liveEditor.value.folderPath, groupRoots: liveEditor.value.groupRoots, name: liveEditor.value.name, email: liveEditor.value.email ?? '', locale: liveEditor.value.locale, ...choices })
+		replaceOperationalRecipient(updated); liveEditor.value = null; recoveryNeeded.value = false; emit('operations-updated')
+		recoveryNotice.value = shareRecoveryMessage(updated.recovery) ?? ''; showSuccess(recoveryNotice.value || t('proofing_gallery', 'Live recipient link updated.'))
+	} catch (error) {
+		if (missingPublicShare(error)) recoveryNeeded.value = true
+		else showError(publicShareError(error, t('proofing_gallery', 'The live recipient link could not be updated.')))
+	} finally { recipientAction.value = null }
 }
 
 async function bulkAction(action: 'resend' | 'revoke' | 'delete') {
@@ -157,6 +172,9 @@ watch([visible, page], () => { loadVisibleLinks().catch(() => {}) }, { immediate
 </script>
 
 <template>
+	<p v-if="recoveryNotice" role="status">
+		{{ recoveryNotice }}
+	</p>
 	<div class="event-list-toolbar">
 		<div class="toolbar-search">
 			<LinkVariantIcon :size="18" aria-hidden="true" /><input v-model="query" type="search" :placeholder="t('proofing_gallery', 'Search recipients or folders')">
@@ -246,7 +264,7 @@ watch([visible, page], () => { loadVisibleLinks().catch(() => {}) }, { immediate
 								</NcButton><a v-if="history.link?.status === 'active'"
 									:href="history.link.url"
 									target="_blank"
-									rel="noopener"><OpenInNewIcon :size="17" />{{ t('proofing_gallery', 'Open') }}</a><NcButton v-if="history.allowedActions?.includes('edit')" variant="tertiary" @click="liveEditor = { ...history, groupRoots: [...history.groupRoots] }">
+									rel="noopener"><OpenInNewIcon :size="17" />{{ t('proofing_gallery', 'Open') }}</a><NcButton v-if="history.allowedActions?.includes('edit')" variant="tertiary" @click="recoveryNeeded = false; liveEditor = { ...history, groupRoots: [...history.groupRoots] }">
 										{{ t('proofing_gallery', 'Edit live link') }}
 									</NcButton><NcButton v-if="history.allowedActions?.includes('resend')"
 									variant="tertiary"
@@ -267,6 +285,10 @@ watch([visible, page], () => { loadVisibleLinks().catch(() => {}) }, { immediate
 							</article>
 						</section>
 						<section v-if="liveEditor && histories.get(entry.recipient.key)?.some(item => item.id === liveEditor?.id)" class="live-link-editor">
+							<PublicShareRecoveryForm v-if="recoveryNeeded"
+								:busy="recipientAction !== null"
+								@confirm="saveLiveRecipient"
+								@cancel="recoveryNeeded = false" />
 							<header>
 								<strong>{{ t('proofing_gallery', 'Edit this released link') }}</strong><button type="button" @click="liveEditor = null">
 									×
@@ -274,7 +296,7 @@ watch([visible, page], () => { loadVisibleLinks().catch(() => {}) }, { immediate
 							</header><div class="recipient-fields">
 								<label><span>{{ t('proofing_gallery', 'Client name') }}</span><input v-model="liveEditor.name" maxlength="120"></label><label><span>{{ t('proofing_gallery', 'Email') }}</span><input v-model="liveEditor.email" type="email"></label><label><span>{{ t('proofing_gallery', 'Private folder') }}</span><select v-model="liveEditor.folderPath"><option v-for="folder in folders" :key="folder.id" :value="folder.path">{{ folder.path }}</option></select></label>
 							</div><div class="inline-actions">
-								<NcButton variant="primary" :disabled="recipientAction === liveEditor.id" @click="saveLiveRecipient">
+								<NcButton variant="primary" :disabled="recipientAction === liveEditor.id" @click="saveLiveRecipient()">
 									{{ t('proofing_gallery', 'Save live link') }}
 								</NcButton><NcButton variant="tertiary" @click="liveEditor = null">
 									{{ t('proofing_gallery', 'Cancel') }}

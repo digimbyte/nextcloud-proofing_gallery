@@ -1,3 +1,4 @@
+import type { PublicShareRecovery } from '../domain/publicShareRecovery.ts'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl, generateUrl } from '@nextcloud/router'
 
@@ -149,6 +150,7 @@ export async function savePublicLink(id: number, linkId: number | null, payload:
 	reviewSelectionMaximum: number | null
 	password?: string | null
 	expiresAt?: string | null
+	recoverMissingShare?: boolean
 }): Promise<GalleryPublicLink> {
 	const url = linkId === null ? `${galleriesUrl}/${id}/public-links` : `${galleriesUrl}/${id}/public-links/${linkId}`
 	const { data } = linkId === null ? await axios.post(url, payload) : await axios.put(url, payload)
@@ -528,9 +530,9 @@ export async function restoreGallery(id: number): Promise<Gallery> {
 
 export async function publishGallery(
 	id: number,
-	payload: { password: string | null; expiresAt: string; expectedRevision: number },
-): Promise<{ gallery: Gallery; url: string }> {
-	const { data } = await axios.post<{ gallery: Gallery; url: string }>(
+	payload: { password: string | null; expiresAt: string; expectedRevision: number; recoverMissingShare?: boolean },
+): Promise<{ gallery: Gallery; url: string; recovery?: PublicShareRecovery }> {
+	const { data } = await axios.post<{ gallery: Gallery; url: string; recovery?: PublicShareRecovery }>(
 		`${galleriesUrl}/${id}/publish`,
 		payload,
 	)

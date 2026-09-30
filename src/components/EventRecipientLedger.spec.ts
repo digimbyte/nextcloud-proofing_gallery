@@ -22,6 +22,8 @@ import type { EventFolderPreview, EventSetupRecipient } from '../services/eventA
 import type { Gallery } from '../types.ts'
 import EventRecipientLedger from './EventRecipientLedger.vue'
 
+vi.mock('@nextcloud/vue/components/NcCheckboxRadioSwitch', () => ({ default: { template: '<span />' } }))
+
 const folders: EventFolderPreview[] = Array.from({ length: 1000 }, (_, index) => ({
 	id: index + 1,
 	parentId: null,

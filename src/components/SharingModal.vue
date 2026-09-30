@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
+import { missingPublicShare, publicShareError, shareRecoveryMessage } from '../domain/publicShareRecovery.ts'
+import type { ShareRecoveryChoices } from '../domain/publicShareRecovery.ts'
+import PublicShareRecoveryForm from './PublicShareRecoveryForm.vue'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
@@ -22,6 +25,8 @@ import {
 } from '../services/galleryApi.ts'
 import type { Gallery, InvitationTemplate } from '../types.ts'
 
+const recoveryNeeded = ref(false)
+const recoveryNotice = ref('')
 const props = defineProps<{ show: boolean; gallery: Gallery }>()
 const emit = defineEmits<{
 	close: []
@@ -72,6 +77,8 @@ watch(publicUrl, async url => {
 
 watch(() => props.show, async show => {
 	if (!show) return
+	recoveryNeeded.value = false
+	recoveryNotice.value = ''
 	templatesLoading.value = true
 	try {
 		templates.value = await fetchInvitationTemplates()
@@ -132,21 +139,26 @@ async function removeTemplate() {
 	}
 }
 
-async function publish() {
+async function publish(choices?: ShareRecoveryChoices) {
+	if (recoveryNeeded.value && !choices) return
 	publishing.value = true
 	try {
 		const result = await publishGallery(props.gallery.id, {
 			password: removePassword.value ? '' : password.value || null,
 			expiresAt: expiresAt.value,
 			expectedRevision: props.gallery.revision,
+			...choices,
 		})
 		publicUrl.value = result.url
 		password.value = ''
 		removePassword.value = false
 		emit('updated', result.gallery)
-		showSuccess(t('proofing_gallery', 'Public gallery link updated.'))
-	} catch {
-		showError(t('proofing_gallery', 'The public link could not be updated.'))
+		recoveryNeeded.value = false
+		recoveryNotice.value = shareRecoveryMessage(result.recovery) ?? ''
+		showSuccess(recoveryNotice.value || t('proofing_gallery', 'Public gallery link updated.'))
+	} catch (error) {
+		if (missingPublicShare(error)) recoveryNeeded.value = true
+		else showError(publicShareError(error, t('proofing_gallery', 'The public link could not be updated.')))
 	} finally {
 		publishing.value = false
 	}
@@ -159,6 +171,8 @@ async function revoke() {
 	try {
 		const gallery = await revokeGallery(props.gallery.id)
 		publicUrl.value = ''
+		recoveryNeeded.value = false
+		recoveryNotice.value = ''
 		emit('updated', gallery)
 		showSuccess(t('proofing_gallery', 'Public link revoked.'))
 	} catch {
@@ -220,6 +234,13 @@ function updateOpen(open: boolean) {
 
 			<section>
 				<h3>{{ t('proofing_gallery', 'Public link') }}</h3>
+				<p v-if="recoveryNotice" role="status">
+					{{ recoveryNotice }}
+				</p>
+				<PublicShareRecoveryForm v-if="recoveryNeeded"
+					:busy="publishing"
+					@confirm="publish"
+					@cancel="recoveryNeeded = false" />
 				<div v-if="published" class="link-field">
 					<input :value="publicUrl" readonly :aria-label="t('proofing_gallery', 'Public gallery link')">
 					<NcButton @click="copyLink">
@@ -290,7 +311,7 @@ function updateOpen(open: boolean) {
 				<p v-if="!published && gallery.sourceType === 'collection' && gallery.mediaSummary.total === 0" class="sharing-dialog__hint">
 					{{ t('proofing_gallery', 'Add at least one available file before publishing this collection.') }}
 				</p>
-				<NcButton variant="primary" :disabled="publishDisabled" @click="publish">
+				<NcButton variant="primary" :disabled="publishDisabled" @click="publish()">
 					{{ publishing
 						? t('proofing_gallery', 'Updating…')
 						: published

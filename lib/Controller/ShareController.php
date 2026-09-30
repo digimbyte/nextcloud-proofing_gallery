@@ -64,6 +64,7 @@ final class ShareController extends Controller {
 		?string $downloadScope = null,
 		?bool $allowDownloads = null,
 		?int $expectedRevision = null,
+		bool $recoverMissingShare = false,
 	): DataResponse {
 		try {
 			$userId = $this->userId();
@@ -74,13 +75,17 @@ final class ShareController extends Controller {
 			$currentSettings = GallerySettings::fromArray(json_decode($gallery->getSettings(), true, flags: JSON_THROW_ON_ERROR));
 			$scope = $downloadScope
 				?? ($allowDownloads === null ? $currentSettings->delivery->downloadScope->value : ($allowDownloads ? 'all' : 'none'));
-			$gallery = $this->shares->publish($gallery, $password, $expiresAt, $scope);
+			$recovery = null;
+			$gallery = $this->shares->publish($gallery, $password, $expiresAt, $scope, $recoverMissingShare, $recovery);
 			return new DataResponse([
 				'gallery' => $this->galleries->present($userId, $gallery),
+				'recovery' => $recovery,
 				'url' => $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', [
 					'token' => $gallery->getShareToken(),
 				]),
 			]);
+		} catch (\OCA\ProofingGallery\Exception\PublicShareMissingException $exception) {
+			return new DataResponse(['code' => 'public_share_missing', 'message' => $exception->getMessage()], Http::STATUS_CONFLICT);
 		} catch (GalleryConflictException $exception) {
 			$userId = $this->userId();
 			return new DataResponse([
@@ -98,6 +103,8 @@ final class ShareController extends Controller {
 			], Http::STATUS_UNPROCESSABLE_ENTITY);
 		} catch (DoesNotExistException|ShareNotFound|AuthorizationException) {
 			return new DataResponse(['message' => 'Gallery or share not found'], Http::STATUS_NOT_FOUND);
+		} catch (\OCP\HintException|\OCP\Share\Exceptions\GenericShareException $exception) {
+			return new DataResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY);
 		} catch (InvalidArgumentException $exception) {
 			return new DataResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY);
 		}
@@ -114,6 +121,12 @@ final class ShareController extends Controller {
 			));
 		} catch (DoesNotExistException|ShareNotFound|AuthorizationException) {
 			return new DataResponse(['message' => 'Gallery or share not found'], Http::STATUS_NOT_FOUND);
+		} catch (GalleryConflictException $exception) {
+			return new DataResponse(['code' => 'revision_conflict', 'message' => $exception->getMessage()], Http::STATUS_CONFLICT);
+		} catch (\OCP\HintException|\OCP\Share\Exceptions\GenericShareException $exception) {
+			return new DataResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY);
+		} catch (InvalidArgumentException $exception) {
+			return new DataResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY);
 		}
 	}
 

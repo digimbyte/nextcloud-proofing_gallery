@@ -4,7 +4,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 
 import AxeBuilder from '@axe-core/playwright'
-import { expect, request as requestFactory, test } from '@playwright/test'
+import { expect, request as requestFactory, test, type APIRequestContext } from '@playwright/test'
 
 import { expectSuccessToast } from './dialogs.ts'
 
@@ -1245,3 +1245,124 @@ test('notification and invitation controls stay understandable and responsive', 
 	await page.getByRole('button', { name: 'Delete template' }).click()
 	await expectSuccessToast(page, 'Invitation template deleted.')
 })
+
+const recoveryHeaders = { Authorization: `Basic ${Buffer.from('admin:admin').toString('base64')}`, 'OCS-APIRequest': 'true' }
+const recoveryChoices = { recoverMissingShare: true, password: '', expiresAt: '' }
+
+interface RecoveryLink { id: number; name: string; url: string; primary: boolean; status: string; policy: Record<string, unknown>; review: unknown }
+
+async function nativeRecoveryShare(request: APIRequestContext, baseURL: string, url: string) {
+	const response = await request.get(`${baseURL}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, { headers: recoveryHeaders })
+	expect(response.ok(), await response.text()).toBe(true)
+	const body = await response.json() as { ocs: { data: Array<{ id: string; token: string; label: string; expiration: string | null }> } }
+	const token = new URL(url).pathname.split('/').at(-1)
+	const share = body.ocs.data.find(item => item.token === token)
+	expect(share).toBeDefined()
+	return share!
+}
+
+for (const primary of [true, false]) for (const customTokens of [true, false]) {
+	test(`${primary ? 'primary' : 'secondary'} links recover after external deletion (custom tokens ${customTokens}) and revoke when already missing`, async ({ request, baseURL }) => {
+		test.setTimeout(90_000)
+		const setting = 'shareapi_allow_custom_tokens'
+		const configUrl = `${baseURL}/ocs/v2.php/apps/provisioning_api/api/v1/config/apps/core`
+		const readConfig = async (key: string) => {
+			const response = await request.get(`${configUrl}/${key}?format=json`, { headers: recoveryHeaders })
+			expect(response.ok(), await response.text()).toBe(true)
+			return String((await response.json()).ocs.data.data)
+		}
+		const writeConfig = async (key: string, value: string | null) => {
+			const url = `${configUrl}/${key}?format=json`
+			const response = value === null ? await request.delete(url, { headers: recoveryHeaders }) : await request.post(url, { headers: recoveryHeaders, form: { value } })
+			expect(response.ok(), await response.text()).toBe(true)
+		}
+		const previousSetting = await readConfig(setting)
+		await writeConfig(setting, String(customTokens))
+		const fixture = JSON.parse(await readFile('test-results-e2e-state.json', 'utf8')) as { folderId: number }
+		const galleries = `${baseURL}/ocs/v2.php/apps/proofing_gallery/api/v1/galleries`
+		const created = await request.post(`${galleries}?format=json`, { headers: recoveryHeaders, data: { folderId: fixture.folderId, title: `E2E share recovery ${primary} ${customTokens} ${Date.now()}`, settings: { publicLocale: 'en' } } })
+		expect(created.status(), await created.text()).toBe(201)
+		const gallery = await created.json() as { id: number }
+		const endpoint = `${galleries}/${gallery.id}`
+		try {
+			const publish = await request.post(`${endpoint}/publish?format=json`, { headers: recoveryHeaders, data: {} })
+			expect(publish.ok(), await publish.text()).toBe(true)
+			let link: RecoveryLink
+			if (primary) {
+				const list = await request.get(`${endpoint}/public-links?format=json`, { headers: recoveryHeaders }).then(response => response.json()) as { items: RecoveryLink[] }
+				link = list.items.find(item => item.primary)!
+			} else {
+				const secondary = await request.post(`${endpoint}/public-links?format=json`, { headers: recoveryHeaders, data: { name: 'Client', policy: { view: true }, reviewEnabled: true } })
+				expect(secondary.status(), await secondary.text()).toBe(201)
+				link = await secondary.json() as RecoveryLink
+			}
+			const native = await nativeRecoveryShare(request, baseURL!, link.url)
+			expect(native.label).toMatch(/^Proofing Gallery · E2E share recovery/)
+			expect((await request.delete(`${baseURL}/ocs/v2.php/apps/files_sharing/api/v1/shares/${native.id}?format=json`, { headers: recoveryHeaders })).ok()).toBe(true)
+			const updateUrl = primary ? `${endpoint}/publish?format=json` : `${endpoint}/public-links/${link.id}?format=json`
+			const updateData = primary ? {} : { name: link.name, policy: link.policy, reviewEnabled: true }
+			const update = (data: object) => primary ? request.post(updateUrl, { headers: recoveryHeaders, data }) : request.put(updateUrl, { headers: recoveryHeaders, data })
+			const missing = await update(updateData)
+			expect(missing.status(), await missing.text()).toBe(409)
+			expect(await missing.json()).toMatchObject({ code: 'public_share_missing' })
+			// Cancellation/ordinary retries cannot recreate the native share.
+			expect((await update(updateData)).status()).toBe(409)
+			const incomplete = await update({ ...updateData, recoverMissingShare: true })
+			expect(incomplete.status()).toBe(422)
+			await writeConfig('shareapi_enforce_links_password', 'true')
+			try { expect((await update({ ...updateData, ...recoveryChoices })).status()).toBe(422) }
+			finally { await writeConfig('shareapi_enforce_links_password', null) }
+			await writeConfig('shareapi_default_expire_date', 'true')
+			await writeConfig('shareapi_enforce_expire_date', 'true')
+			try { expect((await update({ ...updateData, ...recoveryChoices })).status()).toBe(422) }
+			finally {
+				await writeConfig('shareapi_enforce_expire_date', null)
+				await writeConfig('shareapi_default_expire_date', null)
+			}
+			await writeConfig('shareapi_allow_links', 'no')
+			try {
+				const disabled = await update({ ...updateData, ...recoveryChoices })
+				expect(disabled.status()).toBe(403)
+				expect(await disabled.json()).toMatchObject({ code: 'public_publishing_disabled' })
+			}
+			finally { await writeConfig('shareapi_allow_links', 'yes') }
+			// Explicit no expiry must override an optional native default.
+			await writeConfig('shareapi_default_expire_date', 'true')
+			if (!customTokens) {
+				const fixtureSql = async (sql: string) => execFileAsync('docker', ['compose', 'exec', '-T', 'db', 'mariadb', '-uroot', '-pnextcloud-root', 'nextcloud', '--execute', sql])
+				const table = primary ? 'oc_proofing_galleries' : 'oc_proofing_public_links'
+				const beforeFailure = await request.get(`${baseURL}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, { headers: recoveryHeaders }).then(response => response.json()) as { ocs: { data: Array<{ id: string }> } }
+				await fixtureSql(`CREATE TRIGGER pg_recovery_rollback BEFORE UPDATE ON ${table} FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Recovery persistence failure fixture'`)
+				try {
+					const failed = await update({ ...updateData, ...recoveryChoices })
+					expect(failed.status()).toBe(500)
+					const coreShares = await request.get(`${baseURL}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, { headers: recoveryHeaders }).then(response => response.json()) as { ocs: { data: Array<{ id: string }> } }
+					expect(coreShares.ocs.data.map(share => share.id).sort()).toEqual(beforeFailure.ocs.data.map(share => share.id).sort())
+				} finally { await fixtureSql('DROP TRIGGER pg_recovery_rollback') }
+			}
+			// Concurrent confirmations create only one replacement; later calls update it or report conflict.
+			const attempts = await Promise.all(Array.from({ length: 3 }, () => update({ ...updateData, ...recoveryChoices })))
+			for (const attempt of attempts) expect([200, 409]).toContain(attempt.status())
+			const results = await Promise.all(attempts.filter(response => response.status() === 200).map(response => response.json())) as Array<{ url: string; recovery: 'restored' | 'replaced' | null }>
+			const result = results.find(item => item.recovery !== null)!
+			expect(result).toBeDefined()
+			expect(result.recovery).toBe(customTokens ? 'restored' : 'replaced')
+			if (result.recovery === 'restored') expect(result.url).toBe(link.url)
+			else expect(result.url).not.toBe(link.url)
+			const after = await request.get(`${endpoint}/public-links?format=json`, { headers: recoveryHeaders }).then(response => response.json()) as { items: RecoveryLink[] }
+			const sameLink = after.items.find(item => item.id === link.id)!
+			expect(sameLink.status).toBe('active')
+			expect(sameLink.review).toEqual(link.review)
+			const replacement = await nativeRecoveryShare(request, baseURL!, result.url)
+			expect(replacement.id).not.toBe(native.id)
+			expect(replacement.expiration).toBeNull()
+			expect((await request.delete(`${baseURL}/ocs/v2.php/apps/files_sharing/api/v1/shares/${replacement.id}?format=json`, { headers: recoveryHeaders })).ok()).toBe(true)
+			const revoked = await request.delete(updateUrl, { headers: recoveryHeaders })
+			expect(revoked.ok(), await revoked.text()).toBe(true)
+		} finally {
+			await request.delete(`${endpoint}?format=json`, { headers: recoveryHeaders })
+			await writeConfig('shareapi_default_expire_date', null)
+			await writeConfig(setting, previousSetting || null)
+		}
+	})
+}

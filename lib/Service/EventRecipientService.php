@@ -57,17 +57,19 @@ final class EventRecipientService {
 	 * @param list<string> $groupRoots
 	 * @return array<string, mixed>
 	 */
-	public function edit(Gallery $gallery, int $recipientId, string $folderPath, array $groupRoots, string $name, string $email, ?string $locale, string $actorUid): array {
+	public function edit(Gallery $gallery, int $recipientId, string $folderPath, array $groupRoots, string $name, string $email, ?string $locale, string $actorUid, bool $recoverMissingShare = false, ?string $password = null, ?string $expiresAt = null): array {
 		$row = $this->recipient($gallery, $recipientId);
 		if ($row['wave_id'] === null || in_array($row['publication_status'], ['revoked'], true)) throw new \InvalidArgumentException('This recipient can no longer be edited');
 		try {
+			$recovery = null;
 			$prepared = $this->prepare($gallery, (int)$row['wave_id'], $folderPath, $groupRoots, $name, $email, $locale);
 			if ($row['public_link_id'] !== null) {
-				$this->links->updateEventRecipient($gallery, (int)$row['public_link_id'], $prepared['name'], [...$prepared['sharedRoots'], ...array_column($prepared['groupRoots'], 'path'), $prepared['folderPath']], $prepared['folderPath'], $prepared['locale'], groupRoots: array_column($prepared['groupRoots'], 'path'));
+				$updatedLink = $this->links->updateEventRecipient($gallery, (int)$row['public_link_id'], $prepared['name'], [...$prepared['sharedRoots'], ...array_column($prepared['groupRoots'], 'path'), $prepared['folderPath']], $prepared['folderPath'], $prepared['locale'], $password, groupRoots: array_column($prepared['groupRoots'], 'path'), recoverMissingShare: $recoverMissingShare, expiresAt: $expiresAt);
+				$recovery = $updatedLink['recovery'] ?? null;
 			}
 			$this->repository->updateRecipient((int)$row['wave_id'], $recipientId, $prepared['folderId'], $prepared['folderPath'], $prepared['groupRoots'], $prepared['name'], $prepared['emailCipher'], $prepared['locale'], $this->clock->getTime());
 			$this->record($gallery, $row, $actorUid, 'recipient_edit', 'success');
-			return $this->present($gallery, $this->recipient($gallery, $recipientId), $this->linkMap($gallery));
+			return [...$this->present($gallery, $this->recipient($gallery, $recipientId), $this->linkMap($gallery)), 'recovery' => $recovery];
 		} catch (\Throwable $exception) {
 			$this->record($gallery, $row, $actorUid, 'recipient_edit', 'failed', 'operation_failed');
 			throw $exception;

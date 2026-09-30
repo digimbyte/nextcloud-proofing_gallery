@@ -1,3 +1,4 @@
+import type { PublicShareRecovery } from './domain/publicShareRecovery.ts'
 import type { GallerySettings } from './domain/gallerySettings'
 import type { PublicReviewState, ReviewRound } from './publicTypes.ts'
 
@@ -267,6 +268,7 @@ export interface PublicLinkPolicy {
 }
 
 export interface GalleryPublicLink {
+	recovery?: PublicShareRecovery
 	id: number
 	galleryId: number
 	name: string

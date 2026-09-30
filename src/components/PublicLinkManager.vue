@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
+import { missingPublicShare, publicShareError, shareRecoveryMessage } from '../domain/publicShareRecovery.ts'
+import type { ShareRecoveryChoices } from '../domain/publicShareRecovery.ts'
+import PublicShareRecoveryForm from './PublicShareRecoveryForm.vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import QRCode from 'qrcode'
 import { onMounted, ref } from 'vue'
 import { fetchGallery, fetchPublicLinks, fetchShareAudit, makePublicLinkPrimary, requestCustomDomain, revokeCustomDomain, revokePublicLink, savePublicLink } from '../services/galleryApi.ts'
 import type { Gallery, GalleryPublicLink, PublicLinkPolicy, ShareAuditItem } from '../types.ts'
 
+const recoveryNeeded = ref(false)
+const recoveryNotice = ref('')
 const props = defineProps<{ gallery: Gallery }>()
 const emit = defineEmits<{ 'gallery-updated': [gallery: Gallery] }>()
 const links = ref<GalleryPublicLink[]>([])
@@ -86,12 +91,15 @@ async function load() {
 }
 
 function startNew() {
+	recoveryNeeded.value = false
 	draft.value = createDraft()
 	applyPreset('presentation')
 	editingId.value = 'new'
 }
 
 function edit(link: GalleryPublicLink) {
+	recoveryNeeded.value = false
+	recoveryNotice.value = ''
 	draft.value = { ...createDraft(), name: link.name, startPath: link.startPath, viewMode: link.viewMode, groupDepth: link.groupDepth, minOwnerRating: link.minOwnerRating, publicLocale: link.publicLocale, reviewEnabled: link.reviewEnabled, reviewDueDate: link.reviewDueDate ?? '', reviewSelectionMinimum: link.reviewSelectionMinimum, reviewSelectionMaximum: link.reviewSelectionMaximum, policy: structuredClone(link.policy) }
 	editingId.value = link.id
 }
@@ -106,16 +114,23 @@ function updatePermission(key: Exclude<keyof PublicLinkPolicy, 'view' | 'downloa
 	if (key === 'comments' && !value) draft.value.policy.annotations = false
 }
 
-async function save() {
+async function save(choices?: ShareRecoveryChoices) {
+	if (recoveryNeeded.value && !choices) return
 	saving.value = true
 	try {
 		const link = await savePublicLink(props.gallery.id, editingId.value === 'new' ? null : editingId.value as number, {
-			...draft.value, reviewDueDate: draft.value.reviewDueDate || null, password: draft.value.password || null, expiresAt: draft.value.expiresAt || null,
+			...draft.value, reviewDueDate: draft.value.reviewDueDate || null, password: draft.value.password || null, expiresAt: draft.value.expiresAt || null, ...choices,
 		})
 		links.value = editingId.value === 'new' ? [...links.value, link] : links.value.map(item => item.id === link.id ? link : item)
 		editingId.value = null
-		showSuccess(t('proofing_gallery', 'Public link saved.'))
-	} catch { showError(t('proofing_gallery', 'The public link could not be saved. Check its scope and permissions.')) } finally { saving.value = false }
+		recoveryNeeded.value = false
+		recoveryNotice.value = shareRecoveryMessage(link.recovery) ?? ''
+		if (link.primary) emit('gallery-updated', await fetchGallery(props.gallery.id))
+		showSuccess(recoveryNotice.value || t('proofing_gallery', 'Public link saved.'))
+	} catch (error) {
+		if (missingPublicShare(error)) recoveryNeeded.value = true
+		else showError(publicShareError(error, t('proofing_gallery', 'The public link could not be saved. Check its scope and permissions.')))
+	} finally { saving.value = false }
 }
 
 async function makePrimary(link: GalleryPublicLink) {
@@ -248,7 +263,14 @@ onMounted(load)
 			</article>
 		</div>
 
-		<form v-if="editingId !== null" class="link-editor" @submit.prevent="save">
+		<p v-if="recoveryNotice" role="status">
+			{{ recoveryNotice }}
+		</p>
+		<PublicShareRecoveryForm v-if="recoveryNeeded && editingId !== null"
+			:busy="saving"
+			@confirm="save"
+			@cancel="recoveryNeeded = false" />
+		<form v-if="editingId !== null" class="link-editor" @submit.prevent="save()">
 			<h4>{{ editingId === 'new' ? t('proofing_gallery', 'Create client link') : t('proofing_gallery', 'Edit client link') }}</h4>
 			<div class="link-editor__grid">
 				<label><span>{{ t('proofing_gallery', 'Link name') }}</span><input v-model="draft.name"

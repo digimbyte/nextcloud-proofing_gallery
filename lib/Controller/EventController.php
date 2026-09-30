@@ -161,8 +161,8 @@ final class EventController extends Controller {
 	/** @param list<string> $groupRoots */
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'PUT', url: '/api/v2/galleries/{id}/event/recipients/{recipientId}')]
-	public function editRecipient(int $id, int $recipientId, string $folderPath, array $groupRoots, string $name, string $email = '', ?string $locale = null): DataResponse {
-		return $this->respond(fn () => $this->recipients->edit($this->gallery($id), $recipientId, $folderPath, $groupRoots, $name, $email, $locale, $this->userId()));
+	public function editRecipient(int $id, int $recipientId, string $folderPath, array $groupRoots, string $name, string $email = '', ?string $locale = null, bool $recoverMissingShare = false, ?string $password = null, ?string $expiresAt = null): DataResponse {
+		return $this->respond(fn () => $this->recipients->edit($this->gallery($id), $recipientId, $folderPath, $groupRoots, $name, $email, $locale, $this->userId(), $recoverMissingShare, $password, $expiresAt));
 	}
 
 	#[NoAdminRequired]
@@ -226,8 +226,12 @@ final class EventController extends Controller {
 	/** @param Http::STATUS_OK|Http::STATUS_CREATED|Http::STATUS_ACCEPTED $status */
 	private function respond(callable $callback, int $status = Http::STATUS_OK): DataResponse {
 		try { return new DataResponse($callback(), $status); }
+		catch (\OCA\ProofingGallery\Exception\PublicShareMissingException $exception) { return new DataResponse(['code' => 'public_share_missing', 'message' => $exception->getMessage()], Http::STATUS_CONFLICT); }
+		catch (GalleryConflictException $exception) { return new DataResponse(['code' => 'revision_conflict', 'message' => $exception->getMessage()], Http::STATUS_CONFLICT); }
 		catch (DoesNotExistException|AuthorizationException) { return new DataResponse(['message' => 'Gallery not found'], Http::STATUS_NOT_FOUND); }
 		catch (PolicyViolationException $exception) { return new DataResponse(['code' => $exception->policyCode, 'message' => $exception->getMessage()], Http::STATUS_FORBIDDEN); }
-		catch (\InvalidArgumentException|\OCP\Files\NotFoundException $exception) { return new DataResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY); }
+		catch (\OCP\HintException|\OCP\Share\Exceptions\GenericShareException $exception) {
+			return new DataResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY);
+		} catch (\InvalidArgumentException|\OCP\Files\NotFoundException $exception) { return new DataResponse(['message' => $exception->getMessage()], Http::STATUS_UNPROCESSABLE_ENTITY); }
 	}
 }

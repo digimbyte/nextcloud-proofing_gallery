@@ -1,3 +1,4 @@
+import type { PublicShareRecovery } from '../domain/publicShareRecovery.ts'
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 
@@ -62,6 +63,7 @@ export interface EventDesignMediaPage {
 	offset: number
 }
 export interface EventRecipient {
+	recovery?: PublicShareRecovery
 	id: number
 	setupKey: string | null
 	folderPath: string
@@ -98,7 +100,7 @@ export async function fetchLatestEventRecipientLinks(id: number, setupKeys: stri
 	return (await axios.get<{ items: EventRecipient[] }>(`${galleriesV2Url}/${id}/event/recipient-links`, { params: { keys: setupKeys.join(',') } })).data.items
 }
 
-export async function editEventRecipient(id: number, recipientId: number, payload: { folderPath: string; groupRoots: string[]; name: string; email: string; locale: 'de' | 'en' | null }): Promise<EventRecipient> {
+export async function editEventRecipient(id: number, recipientId: number, payload: { folderPath: string; groupRoots: string[]; name: string; email: string; locale: 'de' | 'en' | null; password?: string; expiresAt?: string; recoverMissingShare?: boolean }): Promise<EventRecipient> {
 	return (await axios.put(`${galleriesV2Url}/${id}/event/recipients/${recipientId}`, payload)).data
 }
 

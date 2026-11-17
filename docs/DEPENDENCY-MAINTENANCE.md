@@ -17,6 +17,22 @@ at 390 px, including image reachability, filmstrips and reduced motion.
 
 ## November 2026 maintenance
 
+The November 17 refresh updates the compatible npm patch/minor dependencies
+and Composer development packages within their existing version ranges. It
+also adopts fast-xml-parser 5.12.1 and jsdom 31.0.1, incorporating the pending
+Dependabot parser and jsdom updates on the retained Node 24.22.1 baseline.
+Stylelint remains on 17: `@nextcloud/stylelint-config` 3.2.2 requires
+`stylelint ^17.9.1`, so the Stylelint 18 update must wait for a compatible
+Nextcloud configuration. Vite 7, TypeScript 6.0, DBAL 3, PHPUnit 11 and the
+`dev-stable33` OCP branch retain the project's compatibility baselines.
+
+Keep the scoped `stylelint-config-recommended-vue` → `stylelint-config-html`
+1.1.0 override while the Vue configuration requires `postcss-html ^1.0.0`.
+Its open-ended HTML configuration range otherwise selects version 2, which
+requires `postcss-html ^2.0.0` and makes the peer dependency tree inconsistent.
+Remove this override once the upstream configuration supports a consistent
+combination, and verify a clean `npm ci` before adoption.
+
 The follow-redirects 1.16.2 update resolves GHSA-mrwp-f3q8-3g9p.
 Minimatch 11.0.4 resolves GHSA-g3hv-75wg-m249 across runtime and development
 consumers. A global exact override replaces the earlier WebDAV-only 10.2.6
@@ -40,10 +56,11 @@ remain transitive dependencies; their parents already allow these fixed
 versions. Keep the production audit free of findings and do not add advisory
 exceptions to the full audit.
 
-The frontend toolchain uses jsdom 30 on the retained Node 24.22.1 baseline and
-TypeScript 6.0.3. The unused `baseUrl` option was removed instead of suppressing
-its deprecation. Dependabot may update jsdom normally, while TypeScript 6.1 and
-later remain excluded until the Vue and lint tooling support them. The stable
+The October frontend toolchain adopted jsdom 30 and TypeScript 6.0.3 on the
+retained Node 24.22.1 baseline. The unused `baseUrl` option was removed instead
+of suppressing its deprecation. Dependabot may update jsdom normally, while
+TypeScript 6.1 and later remain excluded until the Vue and lint tooling support
+them. The stable
 Nextcloud Vite configuration still requires Vite 7; do not adopt the Vite 8
 configuration while it is only available as a prerelease.
 

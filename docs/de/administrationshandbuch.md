@@ -7,7 +7,7 @@ Die Vorgaben für neue Galerien enthalten Dateiname, Aufnahmedatum, letztes Änd
 ## Voraussetzungen und Installation
 
 - Nextcloud 33–35
-- PHP 8.2.35–8.6 mit den von Nextcloud benötigten Erweiterungen; GD wird für
+- PHP 8.2.36–8.6 mit den von Nextcloud benötigten Erweiterungen; GD wird für
   Wasserzeichen-Vorschauen und Kontaktbögen benötigt
 - SQLite, MariaDB/MySQL oder PostgreSQL
 - Nextcloud-Cron sowie ein Mailtransport für Einladungen oder E-Mail-Hinweise

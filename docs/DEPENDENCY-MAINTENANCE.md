@@ -48,6 +48,13 @@ level-two preprocessing, WebDAV basename filtering, Glob file discovery and
 EditorConfig matching. Full frontend gates additionally exercise ESLint and
 the TypeScript tooling. No advisory exemptions are added.
 
+The app requires PHP 8.2.36 or newer, with Composer resolving against that exact
+minimum. PHPUnit 11 is the newest major compatible with PHP 8.2. Keep the OCP
+stubs on `dev-stable33` and DBAL on 3.x to continue checking the oldest supported
+Nextcloud API. Refresh Roave advisories without ignoring its PHP conflicts.
+Installations with an older PHP version must upgrade PHP before updating the
+app; Nextcloud 33–35 remain supported.
+
 ## October 2026 maintenance
 
 The security refresh combines the markdown-it 15.0.3 and follow-redirects
@@ -63,13 +70,6 @@ TypeScript 6.1 and later remain excluded until the Vue and lint tooling support
 them. The stable
 Nextcloud Vite configuration still requires Vite 7; do not adopt the Vite 8
 configuration while it is only available as a prerelease.
-
-The app requires PHP 8.2.35 or newer, with Composer resolving against that exact
-minimum. PHPUnit 11 is the newest major compatible with PHP 8.2. Keep the OCP
-stubs on `dev-stable33` and DBAL on 3.x to continue checking the oldest supported
-Nextcloud API. Refresh Roave advisories without ignoring its PHP conflicts.
-Installations with an older PHP version must upgrade PHP before updating the
-app; Nextcloud 33–35 remain supported.
 
 ## Guarded Braces development dependency
 

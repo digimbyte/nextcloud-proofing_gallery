@@ -3,7 +3,7 @@
 ## Requirements
 
 - Nextcloud 33–35
-- PHP 8.2.35–8.6 with the extensions required by Nextcloud; GD is required for
+- PHP 8.2.36–8.6 with the extensions required by Nextcloud; GD is required for
   watermarked previews and contact sheets
 - SQLite, MariaDB/MySQL, or PostgreSQL
 - a working Nextcloud background-job runner

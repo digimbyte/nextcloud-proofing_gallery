@@ -318,7 +318,7 @@ namespaces. Test both clean sidecar creation and merges with third-party fields.
 
 ### Supported server versions
 
-Proofing Gallery supports Nextcloud 33–35. PHP 8.2.35 remains the app minimum;
+Proofing Gallery supports Nextcloud 33–35. PHP 8.2.36 remains the app minimum;
 Nextcloud 35 itself requires PHP 8.3 or later. Use only PHP versions supported
 by the installed Nextcloud release; the PHP 8.6 unit job is a forward check,
 not a claim that every server supports it.

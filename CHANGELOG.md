@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- require PHP 8.2.36 or newer. Installations on PHP 8.2.35 must upgrade PHP
+  before updating the app.
+
 ## 0.13.0 — 2026-10-30
 
 - support Nextcloud 33–35; Nextcloud 31/32 no longer receive app updates

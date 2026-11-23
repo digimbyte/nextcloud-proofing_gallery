@@ -7,7 +7,7 @@ New-gallery defaults include filename, capture date, last modified date and file
 ## Requirements and installation
 
 - Nextcloud 33–35
-- PHP 8.2.35–8.6 and the extensions required by Nextcloud; GD is needed for
+- PHP 8.2.36–8.6 and the extensions required by Nextcloud; GD is needed for
   watermarked previews and contact sheets
 - SQLite, MariaDB/MySQL, or PostgreSQL
 - Nextcloud cron, plus a configured mail transport when invitations or email

@@ -124,7 +124,7 @@ ein öffentlicher Link nur erlauben kann, was alle geltenden Regeln zulassen.
 	<screenshot small-thumbnail="https://soerennb.github.io/nextcloud-proofing_gallery/screenshots/18c7026aac0c-event-release-desktop-small.png">https://soerennb.github.io/nextcloud-proofing_gallery/screenshots/18c7026aac0c-event-release-desktop.png</screenshot>
 	<screenshot small-thumbnail="https://soerennb.github.io/nextcloud-proofing_gallery/screenshots/967b52d033fd-public-showcase-mobile-small.png">https://soerennb.github.io/nextcloud-proofing_gallery/screenshots/967b52d033fd-public-showcase-mobile.png</screenshot>
 	<dependencies>
-		<php min-version="8.2.35" max-version="8.6"/>
+		<php min-version="8.2.36" max-version="8.6"/>
 		<database>sqlite</database>
 		<database>mysql</database>
 		<database>pgsql</database>

@@ -22,7 +22,13 @@ for (const { width, layout } of [
 
 		const tile = page.locator('.media-tile:not(.media-tile--folder)').first()
 		const select = tile.getByRole('checkbox')
+		const controlGeometry = () => select.evaluate(element => {
+			const control = element.getBoundingClientRect()
+			const tile = element.closest('.media-tile')!.getBoundingClientRect()
+			return { x: control.x - tile.x, y: control.y - tile.y, width: control.width, height: control.height }
+		})
 		await select.scrollIntoViewIfNeeded()
+		const controlBefore = await controlGeometry()
 		const before = await tile.boundingBox()
 		const gridBefore = await page.locator('.media-grid').boundingBox()
 		await tile.hover()
@@ -63,6 +69,7 @@ for (const { width, layout } of [
 		await select.focus()
 		expect(await select.evaluate(element => getComputedStyle(element).boxShadow)).toBe('none')
 		expect(await select.evaluate(element => getComputedStyle(element).outlineStyle)).toBe('solid')
-		expect(await select.boundingBox()).toEqual(circle)
+		expect(await controlGeometry()).toEqual(controlBefore)
+		expect(await tile.evaluate(element => ({ top: element.scrollTop, left: element.scrollLeft }))).toEqual({ top: 0, left: 0 })
 	})
 }

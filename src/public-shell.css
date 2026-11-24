@@ -61,15 +61,15 @@ body.proofing-gallery-public-page .proofing-public-overlay {
 	--ion-toolbar-background: var(--proofing-overlay-surface);
 	--ion-toolbar-color: var(--proofing-overlay-text);
 	--ion-border-color: var(--proofing-overlay-border);
-	--ion-color-primary: var(--proofing-public-accent, #e85d4a);
-	--ion-color-primary-rgb: var(--proofing-public-accent-rgb, 232, 93, 74);
-	--ion-color-primary-contrast: var(--proofing-public-accent-contrast, #fff);
-	--ion-color-primary-contrast-rgb: var(--proofing-public-accent-contrast-rgb, 255, 255, 255);
-	--ion-color-primary-shade: var(--proofing-public-accent-shade, #cc5241);
-	--ion-color-primary-tint: var(--proofing-public-accent-tint, #eb6d5c);
+	--ion-color-primary: var(--proofing-public-accent, #dc513e);
+	--ion-color-primary-rgb: var(--proofing-public-accent-rgb, 220, 81, 62);
+	--ion-color-primary-contrast: var(--proofing-public-accent-contrast, #000);
+	--ion-color-primary-contrast-rgb: var(--proofing-public-accent-contrast-rgb, 0, 0, 0);
+	--ion-color-primary-shade: var(--proofing-public-accent-shade, #c24737);
+	--ion-color-primary-tint: var(--proofing-public-accent-tint, #e16959);
 	--ion-color-light: var(--proofing-overlay-raised);
 	--ion-color-medium: var(--proofing-overlay-muted);
-	--gallery-accent: var(--proofing-public-accent, #e85d4a);
+	--gallery-accent: var(--proofing-public-accent, #dc513e);
 	--gallery-surface: var(--proofing-overlay-surface);
 	--gallery-surface-raised: var(--proofing-overlay-raised);
 	--gallery-border: var(--proofing-overlay-border);
@@ -112,7 +112,7 @@ body.proofing-gallery-public-page ion-action-sheet.proofing-public-overlay .acti
 }
 
 body.proofing-gallery-public-page ion-action-sheet.proofing-public-overlay .action-sheet-button:focus-visible {
-	outline: 2px solid var(--proofing-public-accent, #e85d4a);
+	outline: 2px solid var(--proofing-public-accent, #dc513e);
 	outline-offset: -3px;
 }
 

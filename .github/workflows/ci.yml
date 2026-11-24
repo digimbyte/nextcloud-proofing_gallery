@@ -256,13 +256,13 @@ jobs:
       matrix:
         include:
           - suite: ui
-            specs: tests/e2e/collection.spec.ts tests/e2e/event.spec.ts tests/e2e/gallery-counts.spec.ts tests/e2e/gallery-cover.spec.ts tests/e2e/gallery.spec.ts tests/e2e/owner-studio.spec.ts tests/e2e/review-viewer.spec.ts tests/e2e/sorting.spec.ts
+            specs: tests/e2e/collection.spec.ts tests/e2e/event.spec.ts tests/e2e/gallery-counts.spec.ts tests/e2e/gallery-cover.spec.ts tests/e2e/gallery.spec.ts tests/e2e/gallery-selection.spec.ts tests/e2e/owner-studio.spec.ts tests/e2e/review-viewer.spec.ts tests/e2e/sorting.spec.ts
           - suite: compatibility-33
             nextcloud: '33'
-            specs: tests/e2e/ecosystem.spec.ts tests/e2e/gallery.spec.ts tests/e2e/review-viewer.spec.ts
+            specs: tests/e2e/ecosystem.spec.ts tests/e2e/gallery.spec.ts tests/e2e/gallery-selection.spec.ts tests/e2e/review-viewer.spec.ts
           - suite: compatibility-34
             nextcloud: '34'
-            specs: tests/e2e/ecosystem.spec.ts tests/e2e/gallery.spec.ts tests/e2e/review-viewer.spec.ts
+            specs: tests/e2e/ecosystem.spec.ts tests/e2e/gallery.spec.ts tests/e2e/gallery-selection.spec.ts tests/e2e/review-viewer.spec.ts
           - suite: api
             specs: tests/e2e/ecosystem.spec.ts tests/e2e/regression.spec.ts tests/e2e/security.spec.ts tests/e2e/review-identity.spec.ts tests/e2e/share-recovery.spec.ts tests/e2e/source-rebinding.spec.ts tests/e2e/kiosk.spec.ts tests/e2e/feedback-permissions.spec.ts tests/e2e/link-inheritance.spec.ts tests/e2e/mutation-recovery.spec.ts
     steps:

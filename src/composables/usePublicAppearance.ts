@@ -44,7 +44,7 @@ export function usePublicAppearance(configuredTheme: Ref<'auto' | 'light' | 'dar
 	}
 
 	function syncBodyTheme() {
-		const accent = accentColor.value || '#E85D4A'
+		const accent = accentColor.value || '#DC513E'
 		const rgb = hexRgb(accent)
 		const contrast = readableText(rgb)
 		document.body.dataset.proofingPublicTheme = effectiveTheme.value

@@ -73,7 +73,7 @@ defineEmits<{ dismiss: []; submit: [identity: { displayName: string; email: stri
 
 .guest-dialog__fields input:focus { border-color: var(--gallery-accent); background: var(--gallery-surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gallery-accent) 28%, transparent); }
 
-.guest-dialog__submit { display: grid; box-sizing: border-box; width: 100%; min-height: 48px; place-items: center; padding: 0 18px; border: 1px solid color-mix(in srgb, var(--gallery-accent) 74%, white); border-radius: 11px; background: var(--gallery-accent); box-shadow: 0 8px 22px color-mix(in srgb, var(--gallery-accent) 28%, transparent); color: #fff; font: inherit; font-size: 15px; font-weight: 750; line-height: 1; cursor: pointer; transition: filter 120ms ease, transform 120ms ease, box-shadow 120ms ease; }
+.guest-dialog button.guest-dialog__submit { display: grid; box-sizing: border-box; width: 100%; min-height: 48px; place-items: center; padding: 0 18px; border: 1px solid color-mix(in srgb, var(--gallery-accent) 74%, white); border-radius: 11px; background: var(--gallery-accent); box-shadow: 0 8px 22px color-mix(in srgb, var(--gallery-accent) 28%, transparent); color: var(--ion-color-primary-contrast); font: inherit; font-size: 15px; font-weight: 750; line-height: 1; cursor: pointer; transition: filter 120ms ease, transform 120ms ease, box-shadow 120ms ease; }
 
 .guest-dialog__submit:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 10px 26px color-mix(in srgb, var(--gallery-accent) 36%, transparent); transform: translateY(-1px); }
 

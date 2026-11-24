@@ -4,6 +4,7 @@ import { n, t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { IonAlert, IonApp, IonContent, IonLoading, IonPage } from '@ionic/vue'
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import CheckIcon from 'vue-material-design-icons/Check.vue'
 
 import { usePublicGridGeometry } from './composables/usePublicGridGeometry.ts'
 import { publicGalleryThemeStyle } from './domain/publicGalleryThemeStyle.ts'
@@ -64,7 +65,7 @@ const scope = computed(() => pageState.snapshot.value?.scope ?? null)
 const settings = computed(() => pageState.snapshot.value?.gallery.settings ?? props.gallery.settings)
 const title = computed(() => pageState.snapshot.value?.gallery.title ?? props.gallery.title)
 const deliveryMode = computed(() => pageState.snapshot.value?.gallery.deliveryMode ?? props.gallery.deliveryMode ?? 'standard')
-const accentColor = computed(() => settings.value.presentation.accentColor || '#E85D4A')
+const accentColor = computed(() => settings.value.presentation.accentColor || '#DC513E')
 const { visitorPreference, effectiveTheme, setVisitorPreference } = usePublicAppearance(computed(() => settings.value.presentation.theme), accentColor, !isStaticPreview)
 const appearancePreference = computed({ get: () => visitorPreference.value, set: setVisitorPreference })
 const pageStyle = computed(() => publicGalleryThemeStyle(settings.value))
@@ -283,6 +284,8 @@ function itemRatio(item: MediaItem): number {
 function rememberDimensions(item: MediaItem, event: Event) {
 	const image = event.currentTarget as HTMLImageElement
 	if (!image.naturalWidth || !image.naturalHeight) return
+	const previous = mediaDimensions.value[item.id]
+	if (previous?.width === image.naturalWidth && previous.height === image.naturalHeight) return
 	mediaDimensions.value = {
 		...mediaDimensions.value,
 		[item.id]: { width: image.naturalWidth, height: image.naturalHeight },
@@ -612,7 +615,7 @@ function groupLabel(group: string | undefined): string {
 											role="checkbox"
 											:aria-label="t('proofing_gallery', 'Select {name}', { name: item.name })"
 											@click="toggleSelection(item)">
-											{{ selectedIds.includes(item.id) ? '✓' : '' }}
+											<CheckIcon v-if="selectedIds.includes(item.id)" :size="18" aria-hidden="true" />
 										</button>
 									</article>
 								</template>

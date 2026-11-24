@@ -123,7 +123,7 @@ final class PolicyService {
 				'guestRatings' => $this->config->getAppValue(Application::APP_ID, 'guestRatingsDefault', '1') === '1',
 			]),
 			'workflow' => ['defaultPurpose' => 'delivery'],
-			'branding' => ['studioName' => '', 'accentColor' => '#E85D4A', 'logoAssetId' => null],
+			'branding' => ['studioName' => '', 'accentColor' => '#DC513E', 'logoAssetId' => null],
 			'media' => ['videoTranscoding' => true, 'ffmpegPath' => 'ffmpeg', 'transcodeConcurrency' => 1, 'transcodePreset' => 'medium'],
 			'semantic' => ['provider' => 'disabled', 'endpoint' => '', 'model' => 'metadata-v1', 'scope' => 'images', 'externalTransfer' => false],
 			'livePush' => ['enabled' => false],

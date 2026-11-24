@@ -99,7 +99,7 @@
 .public-gallery-app__display span { position: absolute; top: 7px; inset-inline-end: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--gallery-accent); }
 
 .public-gallery {
-	--gallery-accent: #e85d4a;
+	--gallery-accent: #dc513e;
 	--gallery-accent-on-dark: color-mix(in srgb, var(--gallery-accent) 45%, white);
 	--gallery-accent-on-light: color-mix(in srgb, var(--gallery-accent) 40%, black);
 	--gallery-accent-readable: var(--gallery-accent-on-dark);
@@ -413,6 +413,10 @@
 	display: block;
 }
 
+.media-grid :deep(.virtual-media__cell) {
+	transition: none;
+}
+
 .media-grid :deep(.virtual-media__cell .media-tile) {
 	box-sizing: border-box;
 	width: 100%;
@@ -513,7 +517,7 @@
 	border-radius: min(var(--tile-radius), 4px);
 	background: var(--gallery-surface-raised);
 	color: var(--gallery-text);
-	transition: outline-color 140ms ease, background-color 140ms ease, transform 240ms cubic-bezier(.2, .75, .25, 1);
+	transition: background-color 140ms ease;
 }
 
 @keyframes gallery-tile-reveal {
@@ -551,25 +555,45 @@
 	pointer-events: none;
 }
 
-.media-tile:hover,
-.media-tile:focus-within {
-	z-index: 1;
-	outline: 1px solid color-mix(in srgb, var(--gallery-text) 72%, transparent);
-	outline-offset: -1px;
+.media-tile::after {
+	position: absolute;
+	z-index: 3;
+	inset: 0;
+	border-radius: inherit;
+	box-shadow: inset 0 0 0 0 transparent;
+	content: '';
+	pointer-events: none;
 }
 
-.media-tile--selected,
-.media-tile--selected:is(:hover, :focus-within) {
-	outline: 5px solid var(--gallery-accent);
-	outline-offset: -5px;
+.media-tile:hover::after {
+	box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gallery-text) 85%, transparent);
 }
 
-.media-tile__open {
+.media-tile--selected::after,
+.media-tile--selected:hover::after {
+	box-shadow: inset 0 0 0 4px var(--gallery-accent);
+}
+
+/* Replace Nextcloud's important native focus rules with an inset indicator. */
+.public-gallery .media-tile .media-tile__open:focus-visible {
+	outline: 2px solid var(--gallery-accent-readable) !important;
+	outline-offset: -8px;
+	box-shadow: none !important;
+}
+
+.public-gallery .media-tile .media-tile__select:focus-visible {
+	outline: 2px solid var(--gallery-accent-readable) !important;
+	outline-offset: -4px;
+	box-shadow: none !important;
+}
+
+.public-gallery .media-tile button.media-tile__open {
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
 	width: 100%;
 	height: 100%;
+	margin: 0;
 	padding: 0;
 	border: 0;
 	background: transparent;
@@ -670,20 +694,36 @@
 	font-size: 11px;
 }
 
-.media-tile__select {
+.public-gallery .media-tile button.media-tile__select {
 	position: absolute;
 	z-index: 1;
 	inset: 8px 8px auto auto;
 	display: grid;
-	width: 26px;
-	height: 26px;
+	box-sizing: border-box;
+	width: 28px;
+	height: 28px;
+	min-width: 28px;
+	min-height: 28px;
+	margin: 0;
+	padding: 0;
 	place-items: center;
 	border: 2px solid #fff;
 	border-radius: 50%;
 	background: rgb(0 0 0 / 72%);
 	color: #fff;
 	font-size: 14px;
+	line-height: 1;
+	appearance: none;
+	box-shadow: none;
 	cursor: pointer;
+}
+
+.media-tile__select :deep(.material-design-icon),
+.media-tile__select :deep(svg) {
+	display: block;
+	position: static;
+	width: 18px;
+	height: 18px;
 }
 
 /* Nextcloud core restyles focused/hovered buttons; keep the selection state stable. */
@@ -693,11 +733,11 @@
 	color: #fff;
 }
 
-.media-tile__select--active,
-.media-tile__select--active:is(:hover, :focus, :active) {
+.public-gallery .media-tile button.media-tile__select--active,
+.public-gallery .media-tile button.media-tile__select--active:is(:hover, :focus, :active) {
 	border-color: var(--gallery-accent);
 	background: var(--gallery-accent);
-	color: var(--proofing-public-accent-contrast, #fff);
+	color: var(--ion-color-primary-contrast);
 	box-shadow: 0 0 0 2px rgb(0 0 0 / 35%);
 }
 

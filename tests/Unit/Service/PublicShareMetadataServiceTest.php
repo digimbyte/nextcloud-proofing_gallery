@@ -55,7 +55,7 @@ final class PublicShareMetadataServiceTest extends TestCase {
 	public function testManifestRejectsInvalidAccentColors(): void {
 		$manifest = $this->service()->manifest('tok', 'Gallery', '', 'red', 'auto', false, 'auto');
 
-		self::assertSame('#E85D4A', $manifest['theme_color']);
+		self::assertSame('#DC513E', $manifest['theme_color']);
 		self::assertSame('#000000', $manifest['background_color']);
 		self::assertArrayNotHasKey('lang', $manifest);
 		self::assertCount(1, $manifest['icons']);

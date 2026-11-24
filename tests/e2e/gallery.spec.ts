@@ -324,7 +324,18 @@ test('guest completes an accessible proofing flow', async ({ page, baseURL }) =>
 	await page.getByRole('textbox', { name: 'Your name' }).fill('Playwright Reviewer')
 	const identityButton = page.getByRole('button', { name: 'Continue' })
 	await expect(identityButton).toContainText('Continue')
-	await expect(identityButton).toHaveCSS('color', 'rgb(255, 255, 255)')
+	expect(await identityButton.evaluate(element => {
+		const luminance = (color: string) => {
+			const [red, green, blue] = color.match(/[\d.]+/g)!.slice(0, 3).map(value => {
+				const channel = Number(value) / 255
+				return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+			})
+			return red * 0.2126 + green * 0.7152 + blue * 0.0722
+		}
+		const style = getComputedStyle(element)
+		const levels = [luminance(style.color), luminance(style.backgroundColor)].sort((a, b) => a - b)
+		return (levels[1] + 0.05) / (levels[0] + 0.05)
+	})).toBeGreaterThanOrEqual(4.5)
 	await identityButton.click()
 	await expect(page.getByRole('textbox', { name: 'Your name' })).toHaveCount(0)
 	const pointMarker = page.getByRole('button', { name: 'Open point comment 1' })

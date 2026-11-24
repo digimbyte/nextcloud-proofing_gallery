@@ -188,7 +188,7 @@ function onComposerKeydown(event: KeyboardEvent) {
 
 .annotation-composer__header { display: flex; align-items: center; gap: 10px; }
 
-.annotation-composer__header b { display: grid; width: 32px; height: 32px; flex: 0 0 32px; border: 2px solid rgb(255 255 255 / 90%); border-radius: 50%; background: var(--gallery-accent); box-shadow: 0 0 0 2px rgb(255 255 255 / 12%); font-size: 12px; place-items: center; }
+.annotation-composer__header b { display: grid; width: 32px; height: 32px; flex: 0 0 32px; border: 2px solid rgb(255 255 255 / 90%); border-radius: 50%; background: var(--gallery-accent); box-shadow: 0 0 0 2px rgb(255 255 255 / 12%); color: var(--ion-color-primary-contrast); font-size: 12px; place-items: center; }
 
 .annotation-composer__header strong { font-size: 14px; letter-spacing: .01em; }
 

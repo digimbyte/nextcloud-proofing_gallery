@@ -198,7 +198,7 @@
 
 .annotation-reply-form textarea:focus { border-color: var(--gallery-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gallery-accent) 22%, transparent); }
 
-.annotation-reply-form button { min-height: 42px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--gallery-accent); color: #fff; font: inherit; font-size: 13px; font-weight: 750; }
+.annotation-reply-form button { min-height: 42px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--gallery-accent); color: var(--ion-color-primary-contrast); font: inherit; font-size: 13px; font-weight: 750; }
 
 .annotation-reply-form button:disabled { cursor: not-allowed; opacity: .48; }
 

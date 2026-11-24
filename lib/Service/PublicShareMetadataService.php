@@ -78,7 +78,7 @@ final class PublicShareMetadataService {
 			'start_url' => $start,
 			'scope' => $start,
 			'display' => 'standalone',
-			'theme_color' => preg_match('/^#[0-9a-fA-F]{6}$/', $accentColor) === 1 ? $accentColor : '#E85D4A',
+			'theme_color' => preg_match('/^#[0-9a-fA-F]{6}$/', $accentColor) === 1 ? $accentColor : '#DC513E',
 			'background_color' => $background,
 			'icons' => $icons,
 		];

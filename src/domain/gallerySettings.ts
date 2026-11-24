@@ -132,7 +132,7 @@ const DEFAULT_COLOR_LABELS: GallerySettings['review']['colorLabels'] = [
 
 export function createDefaultGallerySettings(): GallerySettings {
 	const presentation: GallerySettings['presentation'] = {
-		accentColor: '#E85D4A',
+		accentColor: '#DC513E',
 		welcomeMessage: '',
 		logoMode: 'inherit',
 		logoBackground: 'transparent',

@@ -2,7 +2,7 @@ export type Rgb = [number, number, number]
 
 export function hexRgb(value: string): Rgb {
 	const normalized = value.replace('#', '')
-	if (!/^[\da-f]{6}$/i.test(normalized)) return [220, 81, 62]
+	if (!/^[\da-f]{6}$/i.test(normalized)) return [232, 93, 74]
 	return [0, 2, 4].map(offset => Number.parseInt(normalized.slice(offset, offset + 2), 16)) as Rgb
 }
 

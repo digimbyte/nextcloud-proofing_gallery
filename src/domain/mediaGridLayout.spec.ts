@@ -33,9 +33,23 @@ describe('calculateMediaLayout', () => {
 		const firstRowWidth = firstRow.reduce((sum, position) => sum + position.width, 0) + (firstRow.length - 1) * 10
 		expect(firstRowWidth).toBeCloseTo(1000)
 		const last = layout.positions.at(-1)!
-		expect(last.height).toBeCloseTo(firstRow[0].height)
-		expect(last.width).toBeCloseTo(last.height * 2 / 3)
+		expect(last.height).toBe(210)
+		expect(last.width).toBeCloseTo(140)
 		expect(last.width).toBeLessThan(1000)
+	})
+
+	it('preserves the target height for a portrait after a short landscape row on mobile', () => {
+		const layout = calculateMediaLayout({
+			containerWidth: 374,
+			aspectRatios: [2.1, 2.5, 0.5],
+			mode: 'grid',
+			gap: 2,
+			minItemWidth: 156,
+			targetRowHeight: 174,
+			listRowHeight: 132,
+		})
+		expect(layout.positions[0].height).toBeLessThan(90)
+		expect(layout.positions.at(-1)).toMatchObject({ width: 87, height: 174 })
 	})
 
 	it.each([390, 1000, 1580])('keeps equal-ratio tiles the same size at width %i', containerWidth => {

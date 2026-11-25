@@ -178,7 +178,7 @@ function onComposerKeydown(event: KeyboardEvent) {
 
 .annotation-marker:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
 
-.annotation-marker--selected, .annotation-marker--draft { border-style: solid; background: var(--gallery-accent); box-shadow: 0 0 0 2px #0b0b0c, 0 2px 6px rgb(0 0 0 / 42%); color: var(--ion-color-primary-contrast); }
+.annotation-marker--selected, .annotation-marker--draft { border-style: solid; background: var(--gallery-accent); box-shadow: 0 0 0 2px #0b0b0c, 0 2px 6px rgb(0 0 0 / 42%); color: var(--proofing-public-accent-contrast, #000); }
 
 .annotation-marker--draft { pointer-events: none; }
 
@@ -188,7 +188,7 @@ function onComposerKeydown(event: KeyboardEvent) {
 
 .annotation-composer__header { display: flex; align-items: center; gap: 10px; }
 
-.annotation-composer__header b { display: grid; width: 32px; height: 32px; flex: 0 0 32px; border: 2px solid rgb(255 255 255 / 90%); border-radius: 50%; background: var(--gallery-accent); box-shadow: 0 0 0 2px rgb(255 255 255 / 12%); color: var(--ion-color-primary-contrast); font-size: 12px; place-items: center; }
+.annotation-composer__header b { display: grid; width: 32px; height: 32px; flex: 0 0 32px; border: 2px solid rgb(255 255 255 / 90%); border-radius: 50%; background: var(--gallery-accent); box-shadow: 0 0 0 2px rgb(255 255 255 / 12%); color: var(--proofing-public-accent-contrast, #000); font-size: 12px; place-items: center; }
 
 .annotation-composer__header strong { font-size: 14px; letter-spacing: .01em; }
 
@@ -198,7 +198,7 @@ function onComposerKeydown(event: KeyboardEvent) {
 
 .annotation-composer > div { display: flex; justify-content: flex-end; gap: 10px; }
 
-.annotation-composer button { min-height: 42px; padding: 0 17px; border: 1px solid transparent; border-radius: 10px; background: var(--gallery-accent); color: var(--ion-color-primary-contrast); font: inherit; font-size: 13px; font-weight: 700; }
+.annotation-composer button { min-height: 42px; padding: 0 17px; border: 1px solid transparent; border-radius: 10px; background: var(--gallery-accent); color: var(--proofing-public-accent-contrast, #000); font: inherit; font-size: 13px; font-weight: 700; }
 
 .annotation-composer button:last-child { border-color: rgb(255 255 255 / 18%); background: rgb(255 255 255 / 8%); color: #fff; }
 

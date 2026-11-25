@@ -7,6 +7,7 @@ import { publicGalleryThemeStyle } from './publicGalleryThemeStyle.ts'
 describe('gallery accent foreground', () => {
 	it('keeps default control text above the normal-text contrast threshold', () => {
 		const theme = publicGalleryThemeStyle(createDefaultGallerySettings())
+		expect(theme['--gallery-accent']).toBe('#E85D4A')
 		const channels = theme['--ion-color-primary-rgb']!.split(', ').map(value => Number(value) / 255)
 		const linear = channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
 		const luminance = linear[0]! * 0.2126 + linear[1]! * 0.7152 + linear[2]! * 0.0722

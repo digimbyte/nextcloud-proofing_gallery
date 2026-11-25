@@ -116,7 +116,7 @@ function toggle(key: string): void {
 
 .pin-thread__toggle small { color: var(--ion-color-medium); font-size: 11px; white-space: nowrap; }
 
-.pin-thread__number { display: grid; width: 26px; height: 26px; border: 2px solid #fff; border-radius: 50%; background: var(--gallery-accent); box-shadow: 0 0 0 1px #0b0b0c; color: var(--ion-color-primary-contrast); font-size: 11px; font-weight: 800; place-items: center; }
+.pin-thread__number { display: grid; width: 26px; height: 26px; border: 2px solid #fff; border-radius: 50%; background: var(--gallery-accent); box-shadow: 0 0 0 1px #0b0b0c; color: var(--proofing-public-accent-contrast, #000); font-size: 11px; font-weight: 800; place-items: center; }
 
 .pin-thread > header > .pin-thread__open { display: grid; width: 46px; flex: 0 0 46px; border-inline-start: 1px solid var(--ion-border-color); place-items: center; }
 

@@ -76,7 +76,7 @@ const selectedTab = defineModel<'comments' | 'pins'>({ required: true })
 
 .pin-feedback { display: grid; gap: 10px; }
 
-.pin-feedback .pin-feedback__add { min-height: 42px; border: 0; border-radius: 10px; background: var(--gallery-accent); color: var(--ion-color-primary-contrast); font: inherit; font-weight: 700; }
+.pin-feedback .pin-feedback__add { min-height: 42px; border: 0; border-radius: 10px; background: var(--gallery-accent); color: var(--proofing-public-accent-contrast, #000); font: inherit; font-weight: 700; }
 
 .pin-feedback > small { margin-bottom: 4px; color: var(--ion-color-medium); line-height: 1.4; }
 </style>

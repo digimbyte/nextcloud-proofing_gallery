@@ -53,7 +53,7 @@ final class PresentationSettings implements JsonSerializable {
 	/** @return array<string, mixed> */
 	public static function defaults(): array {
 		return [
-			'accentColor' => '#DC513E', 'welcomeMessage' => '', 'logoMode' => 'inherit', 'logoBackground' => 'transparent', 'logoFileId' => null, 'logoAssetId' => null, 'instanceLogoAssetId' => null, 'instanceStudioName' => '', 'heroFileId' => null,
+			'accentColor' => '#E85D4A', 'welcomeMessage' => '', 'logoMode' => 'inherit', 'logoBackground' => 'transparent', 'logoFileId' => null, 'logoAssetId' => null, 'instanceLogoAssetId' => null, 'instanceStudioName' => '', 'heroFileId' => null,
 			'coverFileId' => null, 'heroSource' => 'cover',
 			'openerStyle' => 'minimal', 'heroFocusX' => 50, 'heroFocusY' => 50, 'fontPreset' => 'modern',
 			'watermarkText' => '', 'watermarkOpacity' => 24, 'watermarkTextPosition' => 'tile', 'watermarkTextSize' => 18,

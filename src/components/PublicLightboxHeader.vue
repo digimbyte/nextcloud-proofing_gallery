@@ -111,7 +111,7 @@ ion-title small { display: block; margin-top: 1px; color: rgb(255 255 255 / 56%)
 
 .lightbox-bar__title { display: block; overflow: hidden; font-size: 14px; font-weight: 620; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 
-.lightbox-bar__count { position: absolute; inset: 1px 0 auto auto; display: grid; min-width: 17px; height: 17px; place-items: center; padding-inline: 4px; border: 2px solid #141416; border-radius: 9px; background: var(--gallery-accent); color: var(--ion-color-primary-contrast); font-size: 9px; font-weight: 700; }
+.lightbox-bar__count { position: absolute; inset: 1px 0 auto auto; display: grid; min-width: 17px; height: 17px; place-items: center; padding-inline: 4px; border: 2px solid #141416; border-radius: 9px; background: var(--gallery-accent); color: var(--proofing-public-accent-contrast, #000); font-size: 9px; font-weight: 700; }
 
 @media (max-width: 760px) {
 	ion-toolbar { --min-height: calc(54px + env(safe-area-inset-top)); --padding-top: env(safe-area-inset-top); }

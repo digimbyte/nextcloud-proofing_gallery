@@ -45,7 +45,7 @@
 
 .guest-rating button { display: inline-flex; min-width: 38px; align-items: center; justify-content: center; padding-inline: 8px; background: var(--ion-background-color); transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease; }
 
-.guest-rating button[aria-pressed='true'] { background: var(--gallery-accent); color: var(--ion-color-primary-contrast); }
+.guest-rating button[aria-pressed='true'] { background: var(--gallery-accent); color: var(--proofing-public-accent-contrast, #000); }
 
 .guest-rating__decision button:first-child { --btn-accent: #1eaf73; }
 
@@ -61,7 +61,7 @@
 
 .comment-form textarea { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; min-height: 48px; max-height: 120px; padding: 12px; border: 1px solid var(--ion-border-color); border-radius: 10px; background: var(--ion-background-color); color: var(--ion-text-color); font: inherit; line-height: 1.35; resize: vertical; }
 
-.comment-form button { display: grid; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: var(--gallery-accent); color: var(--ion-color-primary-contrast); place-items: center; }
+.comment-form button { display: grid; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: var(--gallery-accent); color: var(--proofing-public-accent-contrast, #000); place-items: center; }
 
 .comment-form button:focus-visible { outline: 2px solid var(--ion-text-color); outline-offset: 2px; }
 
